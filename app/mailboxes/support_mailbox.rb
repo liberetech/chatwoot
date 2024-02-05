@@ -53,8 +53,16 @@ class SupportMailbox < ApplicationMailbox
     @account.conversations.where("additional_attributes->>'in_reply_to' = ?", in_reply_to).first
   end
 
+  BOOKING_CHAT_GROUPING = /(\d+)-.+@mchat.booking.com/
+
   def in_reply_to
-    mail['In-Reply-To'].try(:value)
+    in_reply_to = mail['In-Reply-To'].try(:value)
+    return in_reply_to if in_reply_to
+
+    grouping_key = @processed_mail.from.map { |f| BOOKING_CHAT_GROUPING.match(f) }.find(&:itself)
+    return "#{grouping_key[1]}@mchat.booking.com" if grouping_key
+
+    nil
   end
 
   def original_sender_email
