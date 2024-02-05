@@ -46,31 +46,36 @@ class SupportMailbox < ApplicationMailbox
     @processed_mail = MailPresenter.new(mail, @account)
   end
 
-  def find_conversation_by_in_reply_to
-    return if in_reply_to.blank?
+  def find_conversation_by_grouping_key
+    return if extract_grouping_key.blank?
 
-    @account.conversations.where("additional_attributes->>'in_reply_to' = ?", in_reply_to).first
+    @account.conversations.where("additional_attributes->>'grouping_key' = ?", extract_grouping_key).first
   end
 
   def in_reply_to
     mail['In-Reply-To'].try(:value)
   end
 
+  def extract_grouping_key
+    mail['In-Reply-To'].try(:value)
+  end
+
   def find_or_create_conversation
-    @conversation = find_conversation_by_in_reply_to || ::Conversation.create!({
-                                                                                 account_id: @account.id,
-                                                                                 inbox_id: @inbox.id,
-                                                                                 contact_id: @contact.id,
-                                                                                 contact_inbox_id: @contact_inbox.id,
-                                                                                 additional_attributes: {
-                                                                                   in_reply_to: in_reply_to,
-                                                                                   source: 'email',
-                                                                                   mail_subject: @processed_mail.subject,
-                                                                                   initiated_at: {
-                                                                                     timestamp: Time.now.utc
-                                                                                   }
-                                                                                 }
-                                                                               })
+    @conversation = find_conversation_by_grouping_key || ::Conversation.create!({
+                                                                                  account_id: @account.id,
+                                                                                  inbox_id: @inbox.id,
+                                                                                  contact_id: @contact.id,
+                                                                                  contact_inbox_id: @contact_inbox.id,
+                                                                                  additional_attributes: {
+                                                                                    grouping_key: extract_grouping_key,
+                                                                                    in_reply_to: in_reply_to,
+                                                                                    source: 'email',
+                                                                                    mail_subject: @processed_mail.subject,
+                                                                                    initiated_at: {
+                                                                                      timestamp: Time.now.utc
+                                                                                    }
+                                                                                  }
+                                                                                })
   end
 
   def find_or_create_contact
