@@ -71,8 +71,16 @@ class Mailbox::ConversationFinderStrategies::NewConversationStrategy < Mailbox::
     )
   end
 
+  BOOKING_CHAT_GROUPING = /(\d+)-.+@mchat.booking.com/
+
   def in_reply_to
-    mail['In-Reply-To'].try(:value)
+    in_reply_to = mail['In-Reply-To'].try(:value)
+    return in_reply_to if in_reply_to
+
+    grouping_key = @processed_mail.from.map { |f| BOOKING_CHAT_GROUPING.match(f) }.find(&:itself)
+    return "#{grouping_key[1]}@mchat.booking.com" if grouping_key
+
+    nil
   end
 
   def find_conversation_by_in_reply_to
