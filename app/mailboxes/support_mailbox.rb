@@ -54,15 +54,22 @@ class SupportMailbox < ApplicationMailbox
   end
 
   BOOKING_CHAT_GROUPING = /(\d+)-.+@mchat.booking.com/
+  def booking_grouping_key
+    grouping_key = @processed_mail.from.map { |f| BOOKING_CHAT_GROUPING.match(f) }.find(&:itself)
+    "#{grouping_key[1]}@mchat.booking.com" if grouping_key
+  end
+
+  AIRBNB_REPLYTO_NAME = /"([^"]+)\s+\(.+@reply.airbnb.com>/
+  def airbnb_grouping_key
+    # Airbnb subject looks like 'Re: Reserva en Estudio para el 27 de enero de 2024 - 28 de enero de 2024'
+    # We need a combination of subject and inhabitants name
+    # since reply-to email ("Pepe (Airbnb)" <4z8kvv4vb0duoemgwzhdax39vft4s1rznedx@reply.airbnb.com>) changes on each message
+    airbnb_name = @processed_mail.from.map { |f| AIRBNB_REPLYTO_NAME.match(f) }.find(&:itself)
+    "[#{airbnb_name[1]}@reply.airbnb.com] #{@processed_mail.subject}" if airbnb_name
+  end
 
   def in_reply_to
-    in_reply_to = mail['In-Reply-To'].try(:value)
-    return in_reply_to if in_reply_to
-
-    grouping_key = @processed_mail.from.map { |f| BOOKING_CHAT_GROUPING.match(f) }.find(&:itself)
-    return "#{grouping_key[1]}@mchat.booking.com" if grouping_key
-
-    nil
+    mail['In-Reply-To'].try(:value) || booking_grouping_key || airbnb_grouping_key
   end
 
   def original_sender_email
