@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 chatwoot/chatwoot:v4.11.1
+FROM --platform=linux/amd64 chatwoot/chatwoot:v4.12.1
 
 COPY app /app/app
 COPY config/application.rb /app/config/application.rb
